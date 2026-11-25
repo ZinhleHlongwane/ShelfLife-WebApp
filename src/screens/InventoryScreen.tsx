@@ -2,45 +2,49 @@ import { useState } from "react";
 import { FoodCard } from "../components/FoodsCard";
 import type { FoodItem } from "../models/FoodItem";
 import { Unit } from "../models/Unit";
+import { isValidDateOnly } from "../utils/dateHelpers";
 
 export const InventoryScreen = () => {
-  // State: stores all food items in the inventory
   const [items, setItems] = useState<FoodItem[]>([]);
-
-  // State: stores user input from the form
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState<Unit>(Unit.COUNT);
   const [expiryDate, setExpiryDate] = useState("");
   const [category, setCategory] = useState<"fridge" | "pantry" | "freezer">("fridge");
 
-  // Function: adds a new item to the inventory
   const addItem = () => {
-    // Basic validation (ensure required fields are filled)
-    if (!name || !quantity || !expiryDate) {
-      alert("Please fill in name, quantity, and expiry date.");
+    const trimmedName = name.trim();
+    const parsedQuantity = Number(quantity);
+
+    if (!trimmedName || !quantity.trim() || !Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
+      window.alert("Enter a food name and a quantity greater than zero.");
       return;
     }
 
-    // Create a new FoodItem object
+    if (!isValidDateOnly(expiryDate)) {
+      window.alert("Enter a valid expiry date.");
+      return;
+    }
+
     const newItem: FoodItem = {
-      id: Date.now().toString(), // simple unique id
-      name,
-      quantity: Number(quantity), // convert string → number
+      id: crypto.randomUUID(),
+      name: trimmedName,
+      quantity: parsedQuantity,
       unit,
-      expiryDate: new Date(expiryDate), // convert string → Date
+      expiryDate,
       category,
     };
 
-    // Update state: add new item to existing list
-    setItems((prev) => [...prev, newItem]);
-
-    // Reset form inputs after adding item
+    setItems((previous) => [...previous, newItem]);
     setName("");
     setQuantity("");
     setUnit(Unit.COUNT);
     setExpiryDate("");
     setCategory("fridge");
+  };
+
+  const deleteItem = (id: string) => {
+    setItems((previous) => previous.filter((item) => item.id !== id));
   };
 
   return (
@@ -57,36 +61,27 @@ export const InventoryScreen = () => {
       <h1>ShelfLife Inventory</h1>
       <p>Track food freshness and reduce waste.</p>
 
-      {/* Form section for adding new food items */}
-      <section
-        style={{
-          backgroundColor: "#fff",
-          padding: "16px",
-          borderRadius: "12px",
-          marginBottom: "20px",
-        }}
-      >
+      <section style={{ backgroundColor: "#fff", padding: "16px", borderRadius: "12px", marginBottom: "20px" }}>
         <h2>Add Food Item</h2>
-
-        {/* Food name input */}
         <input
+          aria-label="Food name"
           value={name}
           onChange={(event) => setName(event.target.value)}
           placeholder="Food name"
           style={{ display: "block", marginBottom: "8px", width: "100%" }}
         />
-
-        {/* Quantity input */}
         <input
+          aria-label="Quantity"
           value={quantity}
           onChange={(event) => setQuantity(event.target.value)}
           placeholder="Quantity"
           type="number"
+          min="0.01"
+          step="any"
           style={{ display: "block", marginBottom: "8px", width: "100%" }}
         />
-
-        {/* Unit selector */}
         <select
+          aria-label="Measurement unit"
           value={unit}
           onChange={(event) => setUnit(event.target.value as Unit)}
           style={{ display: "block", marginBottom: "8px", width: "100%" }}
@@ -97,36 +92,35 @@ export const InventoryScreen = () => {
           <option value={Unit.MILLILITER}>ml</option>
           <option value={Unit.LITER}>l</option>
         </select>
-
-        {/* Expiry date input */}
         <input
+          aria-label="Expiry date"
           value={expiryDate}
           onChange={(event) => setExpiryDate(event.target.value)}
           type="date"
           style={{ display: "block", marginBottom: "8px", width: "100%" }}
         />
-
-        {/* Category selector */}
         <select
+          aria-label="Storage location"
           value={category}
-          onChange={(event) =>
-            setCategory(event.target.value as "fridge" | "pantry" | "freezer")
-          }
+          onChange={(event) => setCategory(event.target.value as "fridge" | "pantry" | "freezer")}
           style={{ display: "block", marginBottom: "8px", width: "100%" }}
         >
-          <option value="fridge">fridge</option>
-          <option value="pantry">pantry</option>
-          <option value="freezer">freezer</option>
+          <option value="fridge">Fridge</option>
+          <option value="pantry">Pantry</option>
+          <option value="freezer">Freezer</option>
         </select>
-
-        {/* Button triggers addItem function */}
         <button onClick={addItem}>Add Item</button>
       </section>
 
-      {/* Render all food items using FoodCard */}
-      {items.map((item) => (
-        <FoodCard key={item.id} item={item} />
-      ))}
+      <section aria-label="Food inventory">
+        {items.length === 0 ? (
+          <p>Your inventory is empty. Add your first food item above.</p>
+        ) : (
+          items.map((item) => (
+            <FoodCard key={item.id} item={item} onDelete={deleteItem} />
+          ))
+        )}
+      </section>
     </main>
   );
 };
