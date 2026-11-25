@@ -26,8 +26,6 @@ export const InventoryScreen = () => {
   const [error, setError] = useState<string | null>(null);
 
   const loadInventory = useCallback(async () => {
-    setLoading(true);
-    setError(null);
     try {
       setItems(await inventoryService.getAll());
     } catch (loadError) {
