@@ -1,3 +1,4 @@
 export const fetchProductByBarcode = async (barcode: string) => {
-  // TODO: call Open Food Facts API
+  void barcode;
+  throw new Error("Barcode lookup has not been implemented yet.");
 };
