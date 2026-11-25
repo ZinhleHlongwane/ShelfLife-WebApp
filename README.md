@@ -1,32 +1,66 @@
 # ShelfLife Web
 
-**A responsive grocery inventory application for tracking food, monitoring expiry dates and reducing household food waste.**
+<div align="center">
 
-ShelfLife helps people keep track of groceries they already have, see what needs using soon and make better use of food before it goes to waste.
+**A little less waste, one shelf at a time.**
 
-This repository contains the React web client. It connects to the shared [ShelfLife ASP.NET Core API](https://github.com/ZinhleHlongwane/ShelfLife-API), which persists inventory records in PostgreSQL.
+A grocery inventory web app for keeping track of what you have, knowing what needs using soon and making better use of the food already in your kitchen.
 
-## Current features
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)
+![API](https://img.shields.io/badge/API-ASP.NET_Core-512BD4?logo=dotnet&logoColor=white)
+![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
 
-- Add food items with quantity, measurement unit, expiry date and storage category
-- Load inventory from the shared backend
-- Filter items by fridge, pantry or freezer
-- View expiry status and days remaining
-- Edit existing inventory items
-- Delete inventory items
-- Loading, empty and API error states
-- Responsive layout for desktop and mobile browsers
+</div>
 
-## Architecture
+ShelfLife is built around a simple idea: it is easier to use food before it goes to waste when you have a clear picture of what is already at home.
+
+This repository contains the web application. It communicates with the shared [ShelfLife API](https://github.com/ZinhleHlongwane/ShelfLife-API), so inventory records are stored by the backend rather than only in the browser.
+
+## What I built
+
+The current web experience focuses on the everyday inventory workflow:
+
+- Add food with a name, quantity, measurement unit, expiry date and storage area.
+- View inventory loaded from the API.
+- Filter items by fridge, pantry or freezer.
+- See the total number of items and how many are expiring within the next three days.
+- Edit an existing item or remove it from the inventory.
+- Get loading, empty and error feedback when working with the API.
+
+The interface is designed to keep the main task straightforward: add what you have, check what needs using and keep the list up to date.
+
+## How the application fits together
+
+The web app is one of two clients using the same backend. The mobile app also reads and updates inventory through the API.
 
 ```mermaid
 flowchart LR
-    User --> Web[React + TypeScript Web App]
-    Web -->|REST / JSON| API[ASP.NET Core API]
-    API --> DB[(PostgreSQL)]
+    User --> Web["ShelfLife Web<br/>React + TypeScript"]
+    User --> Mobile["ShelfLife Mobile<br/>Expo + React Native"]
+    Web -->|REST / JSON| API["ShelfLife API<br/>ASP.NET Core"]
+    Mobile -->|REST / JSON| API
+    API --> DB[("PostgreSQL")]
 ```
 
-The web client and mobile client are intended to use the same API and household inventory data.
+The web client handles presentation and user interaction. The API owns inventory operations and persistence. This keeps the inventory contract in one place instead of maintaining separate web and mobile datasets.
+
+## A few implementation details
+
+### Working with the API
+
+The inventory service handles the HTTP requests for listing, creating, updating and deleting items. The UI does not need to know how the API stores the records.
+
+### Keeping the data contract consistent
+
+The web app has its own frontend types, while the API uses enum names such as `Kilogram` and `Fridge`. The mapping layer converts those values to the shorter labels used in the interface, such as `kg` and `fridge`.
+
+Expiry dates are sent as calendar dates in `YYYY-MM-DD` format. They are not treated as timestamps, which helps avoid shifting a food item's date because of timezone conversion.
+
+### Handling API failures
+
+The inventory screen accounts for loading, saving, deleting and failed requests. If the API cannot be reached, the user gets an error instead of the application silently pretending that a change was saved.
 
 ## Technology
 
@@ -34,103 +68,98 @@ The web client and mobile client are intended to use the same API and household 
 |---|---|
 | UI | React 19 |
 | Language | TypeScript |
-| Build tool | Vite |
-| API communication | Fetch API / REST |
+| Development and build | Vite 8 |
+| API communication | Fetch API, REST and JSON |
 | Backend | ASP.NET Core / .NET 10 |
-| Persistence | PostgreSQL / Entity Framework Core |
+| Persistence | PostgreSQL, Entity Framework Core |
 | CI | GitHub Actions |
 
-## Run locally
+## Run it locally
 
-### Prerequisites
+### Requirements
 
 - Node.js 22 or later
 - npm
 - The [ShelfLife API](https://github.com/ZinhleHlongwane/ShelfLife-API) running locally
 
-### Install dependencies
+### 1. Clone and install
 
 ```bash
+git clone https://github.com/ZinhleHlongwane/ShelfLife-WebApp.git
+cd ShelfLife-WebApp
 npm install
 ```
 
-### Configure the API
+### 2. Start the API
 
-By default, Vite proxies `/api` and `/health` requests to `http://localhost:5000`.
+Follow the setup instructions in the ShelfLife API repository. The Vite development server proxies `/api` and `/health` to `http://localhost:5000` by default.
 
-Start the API on that address before starting the web client. If the API runs elsewhere, set `SHELFLIFE_API_PROXY` to its local origin when starting Vite, or set `VITE_API_BASE_URL` in a local `.env` file to the API origin.
+If your API uses a different local address, set `SHELFLIFE_API_PROXY` before starting Vite:
 
-Example `.env`:
-
-```env
-VITE_API_BASE_URL=
+```bash
+SHELFLIFE_API_PROXY=http://localhost:5001 npm run dev
 ```
 
-An empty value uses the Vite development proxy. For a deployed API, set the full HTTPS origin.
+On Windows PowerShell:
 
-### Start the web app
+```powershell
+$env:SHELFLIFE_API_PROXY="http://localhost:5001"
+npm run dev
+```
+
+For a direct API origin instead of the development proxy, set `VITE_API_BASE_URL` in a local `.env` file. The example file is `.env.example`.
+
+### 3. Start the web app
 
 ```bash
 npm run dev
 ```
 
-Vite prints the local URL, usually `http://localhost:5173`.
+Vite prints the local development URL, usually `http://localhost:5173`.
 
-### Quality checks
+### 4. Run the checks
 
 ```bash
 npm run lint
 npm run build
 ```
 
-GitHub Actions runs dependency installation, linting and a production build on pushes and pull requests to `main`.
-
-## API contract
-
-The web client uses these endpoints:
-
-| Method | Endpoint | Purpose |
-|---|---|---|
-| GET | `/api/inventory` | List inventory |
-| POST | `/api/inventory` | Add an item |
-| GET | `/api/inventory/{id}` | Retrieve an item |
-| PUT | `/api/inventory/{id}` | Update an item |
-| DELETE | `/api/inventory/{id}` | Remove an item |
-
-The client maps its short measurement labels (`g`, `kg`, `ml`, `l`, `count`) to the API's enum names and converts API date-only values to local calendar dates.
+GitHub Actions runs the lint and production-build checks on pushes and pull requests to `main`.
 
 ## Project structure
 
 ```text
 src/
-├── components/          # Reusable inventory components
+├── components/       # Reusable interface components
 ├── features/
-│   └── inventory/       # API service, contracts and inventory logic
-├── models/              # Frontend domain types
-├── screens/             # Application screens
-├── services/            # External service integrations
-└── utils/               # Date and shared helpers
+│   └── inventory/    # API service, DTO mapping and inventory logic
+├── models/           # Frontend data types
+├── screens/          # Inventory screen
+├── services/         # Supporting service integrations
+└── utils/            # Date and shared helpers
 ```
 
 ## Current limitations
 
-- Authentication and household-specific access are not implemented yet.
-- Barcode lookup, recipe suggestions, shopping lists and notifications remain planned features.
-- The API must be running for inventory data to load and persist.
-- Production deployment and end-to-end browser testing are still outstanding.
+ShelfLife is still being developed. The current web repository is focused on the inventory experience.
 
-## Roadmap
+- Authentication and household-specific permissions are not implemented in the API yet.
+- The API currently exposes inventory operations without user sign-in. Do not expose the development API publicly or use it for real household data.
+- Offline inventory access and sync conflict handling are not implemented.
+- Barcode lookup, recipe suggestions, shopping lists and expiry notifications are future work, not current web features.
+- Automated browser and end-to-end tests are not yet included.
 
-- [x] Connect inventory listing and CRUD operations to the ASP.NET Core API
-- [x] Add GitHub Actions lint and build checks
-- [ ] Add automated component and browser tests
-- [ ] Connect the mobile application to the shared API
-- [ ] Implement authentication and household ownership in the backend
-- [ ] Add barcode lookup and food-data integration
-- [ ] Add recipe suggestions and shopping lists
-- [ ] Add expiry notifications
-- [ ] Deploy the web application and API
+## What's next
+
+- [x] Connect the web inventory screen to the shared API.
+- [x] Add create, read, update and delete inventory operations.
+- [x] Add storage filters and expiry summaries.
+- [x] Add GitHub Actions lint and build checks.
+- [ ] Add automated component and browser tests.
+- [ ] Implement authentication and household-level access in the API.
+- [ ] Add offline-aware inventory behaviour.
+- [ ] Explore barcode lookup, shopping lists and expiry reminders.
 
 ---
 
-Built by [Zinhle Hlongwane](https://github.com/ZinhleHlongwane) · Johannesburg, South Africa
+Built by [Zinhle Hlongwane](https://github.com/ZinhleHlongwane) · Johannesburg, South Africa 🇿🇦
