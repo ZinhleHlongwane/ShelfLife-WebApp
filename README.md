@@ -1,146 +1,136 @@
-<div align="center">
+# ShelfLife Web
 
-# 🥬 ShelfLife Web
+**A responsive grocery inventory application for tracking food, monitoring expiry dates and reducing household food waste.**
 
-**A web application for tracking groceries, monitoring expiry dates and reducing household food waste.**
+ShelfLife helps people keep track of groceries they already have, see what needs using soon and make better use of food before it goes to waste.
 
-![React](https://img.shields.io/badge/React-Vite-61DAFB?logo=react&logoColor=black)
-![JavaScript](https://img.shields.io/badge/JavaScript-web-F7DF1E?logo=javascript&logoColor=black)
-![Vite](https://img.shields.io/badge/Vite-frontend-646CFF?logo=vite&logoColor=white)
+This repository contains the React web client. It connects to the shared [ShelfLife ASP.NET Core API](https://github.com/ZinhleHlongwane/ShelfLife-API), which persists inventory records in PostgreSQL.
 
-</div>
+## Current features
 
-ShelfLife helps users keep track of food they already have, understand what is close to expiring and make better use of groceries before they go to waste.
+- Add food items with quantity, measurement unit, expiry date and storage category
+- Load inventory from the shared backend
+- Filter items by fridge, pantry or freezer
+- View expiry status and days remaining
+- Edit existing inventory items
+- Delete inventory items
+- Loading, empty and API error states
+- Responsive layout for desktop and mobile browsers
 
-The web application is part of a wider ShelfLife idea that I want to evolve into a shared food-management platform across web and mobile.
-
-## The problem
-
-Food often gets wasted because people forget what they already have or notice expiry dates too late.
-
-ShelfLife is built around a simple question:
-
-> What if your food inventory could tell you what needs attention before it becomes waste?
-
-## Current direction
-
-The project is being structured around several core features:
-
-```text
-Inventory
-Expiry tracking
-Notifications
-Recipe suggestions
-Shopping lists
-Barcode scanning
-External food data
-```
-
-The long-term goal is to connect those features into one household food-management experience.
-
-## Planned architecture
+## Architecture
 
 ```mermaid
 flowchart LR
-
-  U["User"] --> UI["React Web App"]
-
-  UI --> INV["Inventory"]
-  UI --> REC["Recipes"]
-  UI --> SHOP["Shopping List"]
-  UI --> SCAN["Barcode Scanner"]
-
-  INV --> API["Shared Backend"]
-  REC --> API
-  SHOP --> API
-  SCAN --> API
-
-  API --> DB[("PostgreSQL")]
-
-  API --> OFF["Open Food Facts"]
-  API --> SPOON["Recipe API"]
+    User --> Web[React + TypeScript Web App]
+    Web -->|REST / JSON| API[ASP.NET Core API]
+    API --> DB[(PostgreSQL)]
 ```
 
-The current repository is primarily the web client. The shared backend is part of the next phase of the project.
+The web client and mobile client are intended to use the same API and household inventory data.
 
-## Product vision
-
-I want ShelfLife to eventually support:
-
-- adding groceries manually
-- scanning food barcodes
-- expiry-date tracking
-- highlighting food that should be used soon
-- recipe suggestions based on available ingredients
-- automatic shopping-list generation
-- shared household inventories
-- food-waste analytics
-- notifications for expiring items
-
-## Why I built it
-
-ShelfLife started as an opportunity to practise React, but the problem itself had enough potential to grow beyond a frontend exercise.
-
-I want to use it to practise how a real product evolves:
-
-```text
-UI
-→ application state
-→ backend
-→ database
-→ external APIs
-→ web + mobile clients
-```
-
-That makes it a useful project for learning both software architecture and product thinking.
-
-## Web and mobile
-
-ShelfLife also has a mobile client built with React Native and Expo.
-
-The goal is for both applications to eventually share the same backend and household inventory data.
-
-```text
-             ShelfLife Backend
-                    │
-          ┌─────────┴─────────┐
-          ↓                   ↓
-     Web Application      Mobile App
-```
-
-## Tech stack
+## Technology
 
 | Area | Technology |
 |---|---|
-| **Frontend** | React |
-| **Build tool** | Vite |
-| **Language** | JavaScript |
-| **Planned backend** | REST API |
-| **Planned database** | PostgreSQL |
-| **Planned integrations** | Open Food Facts, recipe API |
+| UI | React 19 |
+| Language | TypeScript |
+| Build tool | Vite |
+| API communication | Fetch API / REST |
+| Backend | ASP.NET Core / .NET 10 |
+| Persistence | PostgreSQL / Entity Framework Core |
+| CI | GitHub Actions |
 
-## Current status
+## Run locally
 
-ShelfLife Web is still under active development.
+### Prerequisites
 
-Some parts of the intended feature structure exist in the repository before the full behaviour has been implemented.
+- Node.js 22 or later
+- npm
+- The [ShelfLife API](https://github.com/ZinhleHlongwane/ShelfLife-API) running locally
 
-I prefer keeping that visible rather than presenting unfinished features as complete.
+### Install dependencies
 
-## What's next
+```bash
+npm install
+```
 
-- [ ] Remove committed `node_modules`
-- [ ] Complete the inventory feature
-- [ ] Add persistent storage through a backend
-- [ ] Connect the web and mobile applications
-- [ ] Add expiry-date notifications
-- [ ] Add Open Food Facts barcode lookup
-- [ ] Add recipe recommendations
-- [ ] Add shared household accounts
-- [ ] Add automated tests
-- [ ] Deploy the web application
-- [ ] Add screenshots and a short product demo
+### Configure the API
+
+By default, Vite proxies `/api` and `/health` requests to `http://localhost:5000`.
+
+Start the API on that address before starting the web client. If the API runs elsewhere, set `SHELFLIFE_API_PROXY` to its local origin when starting Vite, or set `VITE_API_BASE_URL` in a local `.env` file to the API origin.
+
+Example `.env`:
+
+```env
+VITE_API_BASE_URL=
+```
+
+An empty value uses the Vite development proxy. For a deployed API, set the full HTTPS origin.
+
+### Start the web app
+
+```bash
+npm run dev
+```
+
+Vite prints the local URL, usually `http://localhost:5173`.
+
+### Quality checks
+
+```bash
+npm run lint
+npm run build
+```
+
+GitHub Actions runs dependency installation, linting and a production build on pushes and pull requests to `main`.
+
+## API contract
+
+The web client uses these endpoints:
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/inventory` | List inventory |
+| POST | `/api/inventory` | Add an item |
+| GET | `/api/inventory/{id}` | Retrieve an item |
+| PUT | `/api/inventory/{id}` | Update an item |
+| DELETE | `/api/inventory/{id}` | Remove an item |
+
+The client maps its short measurement labels (`g`, `kg`, `ml`, `l`, `count`) to the API's enum names and converts API date-only values to local calendar dates.
+
+## Project structure
+
+```text
+src/
+├── components/          # Reusable inventory components
+├── features/
+│   └── inventory/       # API service, contracts and inventory logic
+├── models/              # Frontend domain types
+├── screens/             # Application screens
+├── services/            # External service integrations
+└── utils/               # Date and shared helpers
+```
+
+## Current limitations
+
+- Authentication and household-specific access are not implemented yet.
+- Barcode lookup, recipe suggestions, shopping lists and notifications remain planned features.
+- The API must be running for inventory data to load and persist.
+- Production deployment and end-to-end browser testing are still outstanding.
+
+## Roadmap
+
+- [x] Connect inventory listing and CRUD operations to the ASP.NET Core API
+- [x] Add GitHub Actions lint and build checks
+- [ ] Add automated component and browser tests
+- [ ] Connect the mobile application to the shared API
+- [ ] Implement authentication and household ownership in the backend
+- [ ] Add barcode lookup and food-data integration
+- [ ] Add recipe suggestions and shopping lists
+- [ ] Add expiry notifications
+- [ ] Deploy the web application and API
 
 ---
 
-<p align="center">Built by <a href="https://github.com/ZinhleHlongwane">Zinhle Hlongwane</a> · Johannesburg 🇿🇦 · <a href="https://www.linkedin.com/in/zinhle-hlongwane-872354209">LinkedIn</a></p>
+Built by [Zinhle Hlongwane](https://github.com/ZinhleHlongwane) · Johannesburg, South Africa
