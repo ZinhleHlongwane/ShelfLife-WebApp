@@ -1,51 +1,38 @@
 import type { FoodItem } from "../models/FoodItem";
 import { getFoodStatus } from "../features/inventory/inventoryLogic";
-import { getStatusColor, getStatusLabel } from "../features/inventory/inventoryDisplay";
+import { getStatusLabel } from "../features/inventory/inventoryDisplay";
 import { getDaysUntilExpiry } from "../utils/dateHelpers";
 
-// Props defines what data this component needs.
-// FoodCard needs one FoodItem to display.
 type Props = {
   item: FoodItem;
+  onEdit: (item: FoodItem) => void;
+  onDelete: (id: string) => void;
+  deleting: boolean;
 };
 
-// FoodCard displays one food item in the inventory list.
-export const FoodCard = ({ item }: Props) => {
-  // Get the logical status: expired, expiringSoon, or fresh
+export const FoodCard = ({ item, onEdit, onDelete, deleting }: Props) => {
   const status = getFoodStatus(item);
-
-  // Convert status into user-friendly text
-  const label = getStatusLabel(status);
-
-  // Convert status into a visual indicator
-  const color = getStatusColor(status);
-
-  // Calculate how many days are left before expiry
   const daysLeft = getDaysUntilExpiry(item.expiryDate);
+  const statusClass = status === "expired" ? "expired" : status === "expiringSoon" ? "expiring" : "fresh";
+  const expiryLabel = daysLeft < 0 ? `Expired ${Math.abs(daysLeft)} ${Math.abs(daysLeft) === 1 ? "day" : "days"} ago` :
+    daysLeft === 0 ? "Expires today" : `${daysLeft} days left`;
 
   return (
-    <div
-      style={{
-        border: "1px solid #ddd",
-        borderRadius: "12px",
-        padding: "16px",
-        marginBottom: "12px",
-        backgroundColor: "#ffffff",
-      }}
-    >
-      <h3>{item.name}</h3>
-
-      <p>
-        Quantity: {item.quantity} {item.unit}
-      </p>
-
-      <p>Category: {item.category}</p>
-
-      <p>
-        Status: {color} {label}
-      </p>
-
-      <p>Days left: {daysLeft}</p>
-    </div>
+    <article className="food-card">
+      <div className="food-card-main">
+        <span className={`status-dot ${statusClass}`} aria-label={getStatusLabel(status)} />
+        <div className="food-details">
+          <h3>{item.name}</h3>
+          <p>{item.quantity} {item.unit} <span>·</span> {item.category}</p>
+        </div>
+      </div>
+      <div className="food-card-meta">
+        <span className={`expiry-label ${statusClass}`}>{expiryLabel}</span>
+        <div className="card-actions">
+          <button type="button" className="icon-button" onClick={() => onEdit(item)} aria-label={`Edit ${item.name}`}>Edit</button>
+          <button type="button" className="icon-button delete-action" onClick={() => onDelete(item.id)} disabled={deleting} aria-label={`Delete ${item.name}`}>{deleting ? "…" : "Remove"}</button>
+        </div>
+      </div>
+    </article>
   );
 };
