@@ -43,7 +43,7 @@ export const toInventoryPayload = (item: Omit<FoodItem, "id">): InventoryItemPay
   name: item.name.trim(),
   quantity: item.quantity,
   unit: unitToApi[item.unit],
-  expiryDate: item.expiryDate.toISOString().slice(0, 10),
+  expiryDate: [item.expiryDate.getFullYear(), String(item.expiryDate.getMonth() + 1).padStart(2, "0"), String(item.expiryDate.getDate()).padStart(2, "0")].join("-"),
   category: categoryToApi[item.category],
 });
 
