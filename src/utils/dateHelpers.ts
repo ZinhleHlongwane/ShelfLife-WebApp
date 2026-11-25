@@ -1,31 +1,50 @@
-// Business rule: items expiring in 3 days or less are considered expiring soon.
 const EXPIRING_SOON_THRESHOLD = 3;
+const DATE_ONLY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-// Calculates how many days are left before the item expires.
-export const getDaysUntilExpiry = (expiryDate: Date): number => {
-  // Get today's date
-  const today = new Date();
+export const isValidDateOnly = (value: string): boolean => {
+  if (!DATE_ONLY_PATTERN.test(value)) return false;
 
-  // Convert both dates to milliseconds, then subtract today from expiry date
-  const diffTime = expiryDate.getTime() - today.getTime();
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
 
-  // Convert milliseconds into days
-  // Math.ceil rounds up partial days, so 0.5 days becomes 1 day
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
 };
 
-// Checks if an item is already expired.
-export const isExpired = (expiryDate: Date): boolean => {
-  const days = getDaysUntilExpiry(expiryDate);
+const toUtcDay = (value: string): number => {
+  if (!isValidDateOnly(value)) {
+    throw new RangeError(`Invalid expiry date: ${value}`);
+  }
 
-  // If days is negative, the expiry date has already passed
-  return days < 0;
+  const [year, month, day] = value.split("-").map(Number);
+  return Date.UTC(year, month - 1, day);
 };
 
-// Checks if an item is close to expiring but not already expired.
-export const isExpiringSoon = (expiryDate: Date): boolean => {
-  const days = getDaysUntilExpiry(expiryDate);
+// Compare calendar dates rather than elapsed 24-hour periods.
+// This avoids daylight-saving and time-of-day errors.
+export const getDaysUntilExpiry = (
+  expiryDate: string,
+  today: Date = new Date(),
+): number => {
+  const todayKey = [
+    today.getFullYear(),
+    String(today.getMonth() + 1).padStart(2, "0"),
+    String(today.getDate()).padStart(2, "0"),
+  ].join("-");
 
-  // Expiring soon means between today and 3 days from now
-  return days <= EXPIRING_SOON_THRESHOLD && days >= 0;
+  return (toUtcDay(expiryDate) - toUtcDay(todayKey)) / 86_400_000;
+};
+
+export const isExpired = (expiryDate: string, today: Date = new Date()): boolean =>
+  getDaysUntilExpiry(expiryDate, today) < 0;
+
+export const isExpiringSoon = (
+  expiryDate: string,
+  today: Date = new Date(),
+): boolean => {
+  const days = getDaysUntilExpiry(expiryDate, today);
+  return days >= 0 && days <= EXPIRING_SOON_THRESHOLD;
 };
