@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { FoodCard } from "../components/FoodsCard";
 import type { FoodItem } from "../models/FoodItem";
 import { Unit } from "../models/Unit";
@@ -25,19 +25,24 @@ export const InventoryScreen = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const loadInventory = useCallback(async () => {
-    try {
-      setItems(await inventoryService.getAll());
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Unable to load your inventory.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    void loadInventory();
-  }, [loadInventory]);
+    let active = true;
+
+    inventoryService.getAll()
+      .then((loadedItems) => {
+        if (active) setItems(loadedItems);
+      })
+      .catch((loadError: unknown) => {
+        if (active) setError(loadError instanceof Error ? loadError.message : "Unable to load your inventory.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const visibleItems = useMemo(
     () => items.filter((item) => filter === "all" || item.category === filter),
